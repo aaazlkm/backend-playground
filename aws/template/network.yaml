@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: network layer
+
+Parameters:
+  VPCCidr:
+    Type: String
+    Default: "10.0.0.0/16"
+  PublicSubnetCidr0:
+    Type: String
+    Default: "10.0.0.0/24"
+  PrivateSubnetCidr0:
+    Type: String
+    Default: "10.0.1.0/24"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidr
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-VPC'
+  PublicSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr0
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: AWS::Region
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicSubnet0'
+  PrivateSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCidr0
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: AWS::Region
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateSubnet0'
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyFormat: pem
+      KeyName: EC2KeyPair
+      KeyType: rsa
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EC2KeyPair'
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${AWS::StackName}-EC2SecurityGroup'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          # TODO 自分のIPアドレスを指定する
+          CidrIp: 0.0.0.0/0
+  EC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-012261b9035f8f938
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+      SubnetId: !Ref PublicSubnet0
+      KeyName: !Ref EC2KeyPair
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EC2'
