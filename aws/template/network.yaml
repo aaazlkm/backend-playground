@@ -20,6 +20,17 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-VPC'
+  InternetGateWay:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-InternetGateWay'
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateWay
   PublicSubnet0:
     Type: AWS::EC2::Subnet
     Properties:
@@ -29,9 +40,33 @@ Resources:
         - 0
         - !GetAZs
           Ref: AWS::Region
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-PublicSubnet0'
+  # PublicSubnetに紐づけるRouteTable
+  PublicSubnetRouteTable0:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicSubnetRouteTable0'
+  # インターネットゲートウェイに紐付けるRoute
+  PublicSubnetRoute:
+      Type: AWS::EC2::Route
+      DependsOn:
+        - VPCGatewayAttachment
+      Properties:
+        RouteTableId: !Ref PublicSubnetRouteTable0
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId: !Ref InternetGateWay
+  # RouteTableをSubnetに関連付ける
+  PublicSubnetRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet0
+        RouteTableId: !Ref PublicSubnetRouteTable0
   PrivateSubnet0:
     Type: AWS::EC2::Subnet
     Properties:
@@ -74,10 +109,20 @@ Resources:
           Ebs:
             VolumeSize: 8
             VolumeType: gp3
-      SubnetId: !Ref PublicSubnet0
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref EC2SecurityGroup
+          SubnetId: !Ref PublicSubnet0
       KeyName: !Ref EC2KeyPair
-      SecurityGroupIds:
-        - !Ref EC2SecurityGroup
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-EC2'
+  EC2ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref EC2
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EC2ElasticIP'
