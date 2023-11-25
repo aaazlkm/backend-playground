@@ -99,6 +99,29 @@ Resources:
           ToPort: 22
           # TODO 自分のIPアドレスを指定する
           CidrIp: 0.0.0.0/0
+        # http
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # https
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+  # 同じセキュリティグループのEC2からのアクセスを許可する
+  EC2SecurityGroupCircle:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EC2SecurityGroup
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: !Ref EC2SecurityGroup
   EC2:
     Type: AWS::EC2::Instance
     Properties:
