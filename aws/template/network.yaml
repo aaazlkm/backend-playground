@@ -11,6 +11,15 @@ Parameters:
   PrivateSubnetCidr0:
     Type: String
     Default: "10.0.1.0/24"
+  EnableNatGateway:
+    Description: Enable NAT Gateway.
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
+
+Conditions:
+  EnableNatGateway:
+    !Equals [true, !Ref EnableNatGateway]
 
 Resources:
   VPC:
@@ -67,31 +76,38 @@ Resources:
       Properties:
         SubnetId: !Ref PublicSubnet0
         RouteTableId: !Ref PublicSubnetRouteTable0
-  PrivateSubnet0:
-    Type: AWS::EC2::Subnet
+  # ==== NatGateway0 =====
+  NatGateway0:
+    Type: AWS::EC2::NatGateway
+    Condition: EnableNatGateway
     Properties:
-      VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnetCidr0
-      AvailabilityZone: !Select
-        - 0
-        - !GetAZs
-          Ref: AWS::Region
+      AllocationId: !GetAtt NatGatewayEIP0.AllocationId
+      SubnetId: !Ref PublicSubnet0
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateSubnet0'
-  EC2KeyPair:
+          Value: !Sub '${AWS::StackName}-NatGateway0'
+  NatGatewayEIP0:
+    Type: AWS::EC2::EIP
+    Condition: EnableNatGateway
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-NatGatewayEIP0'
+  # ==== WEBServer =====
+  ServerKeyPair:
     Type: AWS::EC2::KeyPair
     Properties:
       KeyFormat: pem
-      KeyName: EC2KeyPair
+      KeyName: ServerKeyPair
       KeyType: rsa
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-EC2KeyPair'
-  EC2SecurityGroup:
+          Value: !Sub '${AWS::StackName}-ServerKeyPair'
+  WEBServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub '${AWS::StackName}-EC2SecurityGroup'
+      GroupDescription: !Sub '${AWS::StackName}-WEBServerSecurityGroup'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -114,15 +130,15 @@ Resources:
           ToPort: -1
           CidrIp: 0.0.0.0/0
   # 同じセキュリティグループのEC2からのアクセスを許可する
-  EC2SecurityGroupCircle:
+  WEBServerSecurityGroupCircle:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref EC2SecurityGroup
+      GroupId: !Ref WEBServerSecurityGroup
       IpProtocol: tcp
       FromPort: 22
       ToPort: 22
-      SourceSecurityGroupId: !Ref EC2SecurityGroup
-  EC2:
+      SourceSecurityGroupId: !Ref WEBServerSecurityGroup
+  WEBServer:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-012261b9035f8f938
@@ -136,16 +152,88 @@ Resources:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
           GroupSet:
-            - !Ref EC2SecurityGroup
+            - !Ref WEBServerSecurityGroup
           SubnetId: !Ref PublicSubnet0
-      KeyName: !Ref EC2KeyPair
+      KeyName: !Ref ServerKeyPair
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-EC2'
-  EC2ElasticIP:
+          Value: !Sub '${AWS::StackName}-WEBServer'
+  WEBServerElasticIP:
     Type: AWS::EC2::EIP
     Properties:
-      InstanceId: !Ref EC2
+      InstanceId: !Ref WEBServer
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-EC2ElasticIP'
+          Value: !Sub '${AWS::StackName}-WEBServerElasticIP'
+  # ==== PrivateSubnet ====
+  PrivateSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCidr0
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: AWS::Region
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateSubnet0'
+  # PrivateSubnetに紐づけるRouteTable
+  PrivateSubnetRouteTable0:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateSubnetRouteTable0'
+  # インターネットゲートウェイに紐付けるRoute
+  PrivateSubnetRoute:
+      Type: AWS::EC2::Route
+      Condition: EnableNatGateway
+      Properties:
+        RouteTableId: !Ref PrivateSubnetRouteTable0
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGateway0
+  # RouteTableをSubnetに関連付ける
+  PrivateSubnetRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PrivateSubnet0
+        RouteTableId: !Ref PrivateSubnetRouteTable0
+  DBServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${AWS::StackName}-DBServerSecurityGroup'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref WEBServerSecurityGroup # WEBServerからのsshを許可する
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          SourceSecurityGroupId: !Ref WEBServerSecurityGroup # WEBServerからのpingを許可する
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref WEBServerSecurityGroup # WEBServerからの全ての通信を許可する
+  DBServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-012261b9035f8f938
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          PrivateIpAddress: 10.0.1.10
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref DBServerSecurityGroup
+          SubnetId: !Ref PrivateSubnet0
+      KeyName: !Ref ServerKeyPair
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-DBServer'
