@@ -49,6 +49,37 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-ServerKeyPair'
+  S3IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource:
+                  - '*'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-WebServerIAMRole'
+  S3InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref S3IAMRole
   # ---------------------------------------------------------------------------- #
   #                                      VPC                                     #
   # ---------------------------------------------------------------------------- #
@@ -70,6 +101,23 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateWay
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      VpcEndpointType: Gateway
+      ServiceName: com.amazonaws.ap-northeast-1.s3
+      RouteTableIds:
+        - !Ref PrivateSubnetRouteTable0
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:*'
+            Resource:
+              - '*'
   # ---------------------------------------------------------------------------- #
   #                                      DNS                                     #
   # ---------------------------------------------------------------------------- #
@@ -204,7 +252,7 @@ Resources:
         - 0
         - !GetAZs
           Ref: AWS::Region
-      MapPublicIpOnLaunch: false
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-PublicSubnet0'
@@ -225,12 +273,13 @@ Resources:
             VolumeSize: 8
             VolumeType: gp3
       NetworkInterfaces:
-        - AssociatePublicIpAddress: false
+        - AssociatePublicIpAddress: true
           DeviceIndex: 0
           GroupSet:
             - !Ref WEBServerSecurityGroup
           SubnetId: !Ref PublicSubnet0
       KeyName: !Ref ServerKeyPair
+      IamInstanceProfile: !Ref S3InstanceProfile
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-WEBServer0'
@@ -365,6 +414,7 @@ Resources:
           GroupSet:
             - !Ref DBServerSecurityGroup
           SubnetId: !Ref PrivateSubnet0
+      IamInstanceProfile: !Ref S3InstanceProfile
       KeyName: !Ref ServerKeyPair
       Tags:
         - Key: Name
