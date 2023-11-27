@@ -2,12 +2,27 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: network layer
 
 Parameters:
+  HostedZoneId:
+    Description: ホステッドゾーンID
+    Type: String
+    Default: 'Z04738022S7T0S229HHTY'
+  DomainName:
+    Description: ホステッドゾーン名
+    Type: String
+    Default: 'nifu.link'
+  SubDomainName:
+    Description: ホステッドゾーン名
+    Type: String
+    Default: 'www.nifu.link'
   VPCCidr:
     Type: String
     Default: "10.0.0.0/16"
   PublicSubnetCidr0:
     Type: String
     Default: "10.0.0.0/24"
+  PublicSubnetCidr1:
+    Type: String
+    Default: "10.0.10.0/24"
   PrivateSubnetCidr0:
     Type: String
     Default: "10.0.1.0/24"
@@ -22,6 +37,21 @@ Conditions:
     !Equals [true, !Ref EnableNatGateway]
 
 Resources:
+  # ---------------------------------------------------------------------------- #
+  #                                    Common                                    #
+  # ---------------------------------------------------------------------------- #
+  ServerKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyFormat: pem
+      KeyName: ServerKeyPair
+      KeyType: rsa
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ServerKeyPair'
+  # ---------------------------------------------------------------------------- #
+  #                                      VPC                                     #
+  # ---------------------------------------------------------------------------- #
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -40,70 +70,94 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateWay
-  PublicSubnet0:
-    Type: AWS::EC2::Subnet
+  # ---------------------------------------------------------------------------- #
+  #                                      DNS                                     #
+  # ---------------------------------------------------------------------------- #
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
     Properties:
-      VpcId: !Ref VPC
-      CidrBlock: !Ref PublicSubnetCidr0
-      AvailabilityZone: !Select
-        - 0
-        - !GetAZs
-          Ref: AWS::Region
-      MapPublicIpOnLaunch: true
+      DomainName: !Sub '*.${DomainName}'
+      DomainValidationOptions:
+        - HostedZoneId: !Ref HostedZoneId
+          DomainName: !Sub '${SubDomainName}'
+      ValidationMethod: DNS
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnet0'
+          Value: !Sub '${AWS::StackName}-Certificate'
+  DNSRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '${SubDomainName}'
+      Type: A
+      AliasTarget:
+          HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
+          DNSName: !GetAtt ALB.DNSName
+  # ---------------------------------------------------------------------------- #
+  #                                      ALB                                     #
+  # ---------------------------------------------------------------------------- #
+  ALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref Certificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ALB
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${AWS::StackName}-ALB'
+      Type: application
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnet0
+        - !Ref PublicSubnet1
+      SecurityGroups:
+        - !Ref WEBServerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ALB'
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AWS::StackName}-ALBTargetGroup'
+      VpcId: !Ref VPC
+      TargetType: instance
+      Port: 80
+      Protocol: HTTP
+      Matcher:
+        HttpCode: 200
+      Targets:
+        - Id: !Ref WEBServer0
+        - Id: !Ref WEBServer1
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ALBTargetGroup'
+  # ---------------------------------------------------------------------------- #
+  #                             PublicSubnetCommon                               #
+  # ---------------------------------------------------------------------------- #
   # PublicSubnetに紐づけるRouteTable
-  PublicSubnetRouteTable0:
+  PublicSubnetRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnetRouteTable0'
+          Value: !Sub '${AWS::StackName}-PublicSubnetRouteTable'
   # インターネットゲートウェイに紐付けるRoute
   PublicSubnetRoute:
       Type: AWS::EC2::Route
       DependsOn:
         - VPCGatewayAttachment
       Properties:
-        RouteTableId: !Ref PublicSubnetRouteTable0
+        RouteTableId: !Ref PublicSubnetRouteTable
         DestinationCidrBlock: 0.0.0.0/0
         GatewayId: !Ref InternetGateWay
-  # RouteTableをSubnetに関連付ける
-  PublicSubnetRouteTableAssociation:
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-        SubnetId: !Ref PublicSubnet0
-        RouteTableId: !Ref PublicSubnetRouteTable0
-  # ==== NatGateway0 =====
-  NatGateway0:
-    Type: AWS::EC2::NatGateway
-    Condition: EnableNatGateway
-    Properties:
-      AllocationId: !GetAtt NatGatewayEIP0.AllocationId
-      SubnetId: !Ref PublicSubnet0
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGateway0'
-  NatGatewayEIP0:
-    Type: AWS::EC2::EIP
-    Condition: EnableNatGateway
-    Properties:
-      Domain: vpc
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGatewayEIP0'
-  # ==== WEBServer =====
-  ServerKeyPair:
-    Type: AWS::EC2::KeyPair
-    Properties:
-      KeyFormat: pem
-      KeyName: ServerKeyPair
-      KeyType: rsa
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-ServerKeyPair'
+  # WebServerのセキュリティグループ
   WEBServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -138,10 +192,32 @@ Resources:
       FromPort: 22
       ToPort: 22
       SourceSecurityGroupId: !Ref WEBServerSecurityGroup
-  WEBServer:
+  # ---------------------------------------------------------------------------- #
+  #                                 PublicSubnet0                                #
+  # ---------------------------------------------------------------------------- #
+  PublicSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr0
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: AWS::Region
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicSubnet0'
+  # RouteTableをSubnetに関連付ける
+  PublicSubnetRouteTableAssociation0:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet0
+        RouteTableId: !Ref PublicSubnetRouteTable
+  WEBServer0:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-012261b9035f8f938
+      ImageId: ami-0826d73b8b9aba5c1
       InstanceType: t2.micro
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
@@ -149,7 +225,7 @@ Resources:
             VolumeSize: 8
             VolumeType: gp3
       NetworkInterfaces:
-        - AssociatePublicIpAddress: true
+        - AssociatePublicIpAddress: false
           DeviceIndex: 0
           GroupSet:
             - !Ref WEBServerSecurityGroup
@@ -157,15 +233,71 @@ Resources:
       KeyName: !Ref ServerKeyPair
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-WEBServer'
-  WEBServerElasticIP:
-    Type: AWS::EC2::EIP
+          Value: !Sub '${AWS::StackName}-WEBServer0'
+  # ==== NatGateway0 =====
+  NatGateway0:
+    Type: AWS::EC2::NatGateway
+    Condition: EnableNatGateway
     Properties:
-      InstanceId: !Ref WEBServer
+      AllocationId: !GetAtt NatGatewayEIP0.AllocationId
+      SubnetId: !Ref PublicSubnet0
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-WEBServerElasticIP'
-  # ==== PrivateSubnet ====
+          Value: !Sub '${AWS::StackName}-NatGateway0'
+  NatGatewayEIP0:
+    Type: AWS::EC2::EIP
+    Condition: EnableNatGateway
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-NatGatewayEIP0'
+  # ---------------------------------------------------------------------------- #
+  #                                 PublicSubnet1                                #
+  # ---------------------------------------------------------------------------- #
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr1
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs
+          Ref: AWS::Region
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicSubnet1'
+  # RouteTableをSubnetに関連付ける
+  PublicSubnetRouteTableAssociation1:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet1
+        RouteTableId: !Ref PublicSubnetRouteTable
+  # ==== WEBServer =====
+  WEBServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0826d73b8b9aba5c1
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref WEBServerSecurityGroup
+          SubnetId: !Ref PublicSubnet1
+      KeyName: !Ref ServerKeyPair
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-WEBServer'
+  # ---------------------------------------------------------------------------- #
+  #                                PrivateSubnet0                                #
+  # ---------------------------------------------------------------------------- #
   PrivateSubnet0:
     Type: AWS::EC2::Subnet
     Properties:
