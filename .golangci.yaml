@@ -15,6 +15,20 @@ linters:
   enable-all: true
   fast: false # 全てのlinterを実行したいのでfalse
 
+linters-settings:
+  varnamelen:
+    ignore-decls:
+      - c echo.Context
+      - t testing.T
+      - e error
+      - i int
+      - const C
+      - T any
+      - m map[string]int
+      - f *foo.Bar
+      - w http.ResponseWriter
+      - r *http.Requests
+
 issues:
   # デフォルトで無効になってるルールを有効にする。
   # https://golangci-lint.run/usage/false-positives/#default-exclusions
