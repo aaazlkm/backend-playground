@@ -1,0 +1,23 @@
+# 方針
+# - 基本的には全てのルールを有効にする。
+# - 無効にしたいルールは個別に無効にし、理由をコメントに残す。
+# - この方針により、常に最新のルールセットを使うことができる & 無効の理由をコード状に残すことができる
+
+run:
+  allow-parallel-runners: true
+
+output:
+  format: colored-line-number
+  sort-results: true
+
+linters:
+  # 基本全て有効にする。無効にしたいものは個別に無効し理由をコメントに残す。
+  enable-all: true
+  fast: false # 全てのlinterを実行したいのでfalse
+
+issues:
+  # デフォルトで無効になってるルールを有効にする。
+  # https://golangci-lint.run/usage/false-positives/#default-exclusions
+  exclude-use-default: false
+  # CIで実行するときはtrueにする。
+  new: false

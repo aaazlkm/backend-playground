@@ -22,5 +22,16 @@
     "!Sub scalar",
     "!Transform mapping",
     "!Ref scalar"
-  ]
+  ],
+  // lint設定
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--enable-all", "--new"],
+  "go.lintOnSave": "file",
+  "go.formatTool": "goimports",
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
 }
