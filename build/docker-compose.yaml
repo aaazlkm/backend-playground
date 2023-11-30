@@ -1,0 +1,32 @@
+version: "3"
+services:
+  app:
+    container_name: app
+    build:
+      # contextの指定の仕方が微妙そう..?
+      context: ..
+      dockerfile: build/Dockerfile.app
+    depends_on:
+      - mysql
+    tty: true
+    ports:
+      - 8080:8080
+    volumes:
+      - ./:/app
+  mysql:
+    container_name: mysql
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    tty: true
+    ports:
+      - 3306:3306
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/config/my.cnf:/etc/mysql/conf.d/my.cnf
