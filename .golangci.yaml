@@ -14,24 +14,31 @@ linters:
   # 基本全て有効にする。無効にしたいものは個別に無効し理由をコメントに残す。
   enable-all: true
   fast: false # 全てのlinterを実行したいのでfalse
+  disable:
+    - deadcode # Deprecated
+    - varcheck # Deprecated
+    - interfacer # Deprecated
+    - exhaustivestruct # Deprecated
+    - scopelint # Deprecated
+    - ifshort # Deprecated
+    - nosnakecase # Deprecated
+    - golint # Deprecated
+    - maligned # Deprecated
+    - structcheck # Deprecated
+    - varnamelen # 変数名の長さをチェックするルール。短くするのが慣習なので無効。
+    - exhaustruct # structの全てのフィールドが初期化されているかチェックするルール。初期化しないこともあるので無効。
+    - gomnd # マジックナンバーを定数にするルール。定数にすると可読性が下がることもあるので無効s。
 
+# 下記に設定項目記載
+# https://golangci-lint.run/usage/linters/
 linters-settings:
-  varnamelen:
-    ignore-decls:
-      - c echo.Context
-      - t testing.T
-      - e error
-      - i int
-      - const C
-      - T any
-      - m map[string]int
-      - f *foo.Bar
-      - w http.ResponseWriter
-      - r *http.Requests
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/go-sql-driver/mysql
 
 issues:
-  # デフォルトで無効になってるルールを有効にする。
-  # https://golangci-lint.run/usage/false-positives/#default-exclusions
-  exclude-use-default: false
   # CIで実行するときはtrueにする。
   new: false
