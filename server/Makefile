@@ -39,3 +39,7 @@ run: fmt lint test
 clean:
 	@go clean
 .PHONY: clean
+
+docker-build:
+	docker-compose -f build/docker-compose.yaml up --build --force-recreate --no-deps
+.PHONY: docker-build

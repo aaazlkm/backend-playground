@@ -13,6 +13,8 @@ services:
       - 8080:8080
     volumes:
       - ./:/app
+    networks:
+      - database
   mysql:
     container_name: mysql
     build:
@@ -30,3 +32,15 @@ services:
     volumes:
       - ./db/init:/docker-entrypoint-initdb.d
       - ./db/config/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - database
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8888:8080
+
+networks:
+  database:

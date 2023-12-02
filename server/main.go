@@ -5,12 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"server/db"
+	"strconv"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
-	h := newHandler()
+	db, err := db.NewDB(10)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	slog.Info("start server")
+
+	h := newHandler(db)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/create", h.Create)
 	mux.HandleFunc("/update", h.Update)
@@ -34,9 +47,13 @@ func main() {
 		DisableGeneralOptionsHandler: false,
 	}
 
+	slog.Info("listenAndServe is started")
+
 	if err := sev.ListenAndServe(); err != nil {
 		log.Print(err)
 	}
+
+	slog.Info("listenAndServe is completed")
 }
 
 /* -------------------------------------------------------------------------- */
@@ -44,11 +61,15 @@ func main() {
 /* -------------------------------------------------------------------------- */
 
 type handler struct {
+	db   *db.DB
 	data map[string]string
 }
 
-func newHandler() *handler {
+func newHandler(
+	db *db.DB,
+) *handler {
 	return &handler{
+		db:   db,
 		data: map[string]string{},
 	}
 }
@@ -180,6 +201,8 @@ func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
+	slog.Info("handler is %v", h)
+
 	if r.Method != http.MethodGet {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
@@ -197,11 +220,31 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := w.Write(
+	id, err := strconv.Atoi(paramKey)
+	if err != nil {
+		log.Print(err)
+
+		return
+	}
+
+	slog.Info("id is %v", id)
+	album, err := h.db.Read(id)
+	if err != nil {
+		w.Write(
+			createResponseInJSON(
+				apiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: fmt.Sprintf("get is error %v", err),
+				},
+			),
+		)
+	}
+
+	_, err = w.Write(
 		createResponseInJSON(
 			apiResponse{
 				Code:    http.StatusOK,
-				Message: fmt.Sprintf("Key %s value is %s", paramKey, h.data[paramKey]),
+				Message: fmt.Sprintf("album is %v", album),
 			},
 		),
 	)
