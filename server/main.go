@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	db, err := db.NewDB(10)
+	db, err := db.NewDB()
 	if err != nil {
 		panic(err)
 	}
@@ -29,6 +29,7 @@ func main() {
 	mux.HandleFunc("/update", h.Update)
 	mux.HandleFunc("/delete", h.Delete)
 	mux.HandleFunc("/get", h.Get)
+	mux.HandleFunc("/getAll", h.GetAll)
 
 	sev := &http.Server{
 		Addr:                         ":8080",
@@ -83,11 +84,12 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &apiRequest{
-		Key:   "",
-		Value: "",
+	alb := &db.Album{
+		Title:  "",
+		Artist: "",
+		Price:  0,
 	}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(alb); err != nil {
 		if _, err := w.Write(
 			createResponseInJSON(
 				apiResponse{
@@ -102,13 +104,26 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.data[req.Key] = req.Value
+	id, err := h.db.Create(*alb)
+	if err != nil {
+		_, err = w.Write(
+			createResponseInJSON(
+				apiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: fmt.Sprintf("create is error %v", err),
+				},
+			),
+		)
+		if err != nil {
+			log.Print(err)
+		}
+	}
 
-	_, err := w.Write(
+	_, err = w.Write(
 		createResponseInJSON(
 			apiResponse{
 				Code:    http.StatusOK,
-				Message: fmt.Sprintf("Key %s created", req.Key),
+				Message: fmt.Sprintf("id %d created", id),
 			},
 		),
 	)
@@ -126,11 +141,8 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &apiRequest{
-		Key:   "",
-		Value: "",
-	}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	alb := &db.Album{}
+	if err := json.NewDecoder(r.Body).Decode(alb); err != nil {
 		_, err := w.Write(
 			createResponseInJSON(
 				apiResponse{
@@ -146,25 +158,34 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := h.data[req.Key]; !ok {
-		if _, err := w.Write(methodNotAllowedResponse); err != nil {
+	_, err := h.db.Update(*alb)
+	if err != nil {
+		_, err := w.Write(
+			createResponseInJSON(
+				apiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: fmt.Sprintf("update is error %v", err),
+				},
+			),
+		)
+		if err != nil {
 			log.Print(err)
 		}
 
 		return
 	}
 
-	h.data[req.Key] = req.Value
-
 	if _, err := w.Write(
 		createResponseInJSON(
 			apiResponse{
 				Code:    http.StatusOK,
-				Message: fmt.Sprintf("Key %s created", req.Key),
+				Message: fmt.Sprintf("%v updated", alb),
 			},
 		),
 	); err != nil {
 		log.Print(err)
+
+		return
 	}
 }
 
@@ -238,6 +259,8 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 				},
 			),
 		)
+
+		return
 	}
 
 	_, err = w.Write(
@@ -275,14 +298,59 @@ var (
 	)
 )
 
+func (h *handler) GetAll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		if _, err := w.Write(methodNotAllowedResponse); err != nil {
+			log.Print(err)
+		}
+
+		return
+	}
+
+	albums, err := h.db.ReadAll()
+	if err != nil {
+		w.Write(
+			createResponseInJSON(
+				apiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: fmt.Sprintf("get all is error %v", err),
+				},
+			),
+		)
+
+		return
+	}
+
+	albumsJSON, err := json.Marshal(albums)
+	if err != nil {
+		w.Write(
+			createResponseInJSON(
+				apiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: fmt.Sprintf("get all is error %v", err),
+				},
+			),
+		)
+
+		return
+	}
+
+	_, err = w.Write(
+		createResponseInJSON(
+			apiResponse{
+				Code:    http.StatusOK,
+				Message: fmt.Sprintf("album is %s", string(albumsJSON)),
+			},
+		),
+	)
+	if err != nil {
+		log.Print(err)
+	}
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                    model                                   */
 /* -------------------------------------------------------------------------- */
-
-type apiRequest struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
 
 type apiResponse struct {
 	Code    int    `json:"code"`
