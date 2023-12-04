@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: 'stable'
-      - name: Install goimports
+      - name: Install golangci
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Format code
         run: make fmt
