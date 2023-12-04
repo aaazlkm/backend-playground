@@ -6,7 +6,7 @@
 fmt:
 	go fmt ./...
 	go mod tidy
-	golangci-lint run --fix
+	golangci-lint run --fix --config=.golangci.yaml --issues-exit-code=0
 .PHONY: fmt
 
 # リントタスク
