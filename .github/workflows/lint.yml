@@ -21,4 +21,4 @@ jobs:
         with:
           version: latest
           working-directory: server/
-          args: --timeout=30m --config=.golangci.yaml --issues-exit-code=0
+          args: --timeout=30m --config=.golangci.yaml
