@@ -11,10 +11,12 @@ import (
 	"strconv"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 	db, err := db.NewDB()
+
 	if err != nil {
 		panic(err)
 	}
