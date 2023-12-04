@@ -4,9 +4,6 @@ on:
   pull_request:
 
 permissions:
-  checks: write
-  contents: write
-  issues: write
   pull-requests: write
 
 jobs:
@@ -24,14 +21,13 @@ jobs:
           fetch-depth: 0
       - uses: reviewdog/action-golangci-lint@v2
         with:
-          github_token: ${{ secrets.github_token }}
           # github_token: ${{ secrets.github_token }}
           go-version: '1.21'
           # reviewdog の動作モードの指定
           reporter: github-pr-review
           # Github Status へのレポートレベルの指定
           level: warning
-          # fail_on_error: true
+          fail_on_error: true
           cache: false
           golangci_lint_flags: "--config=.golangci.yaml"
           workdir: server/
