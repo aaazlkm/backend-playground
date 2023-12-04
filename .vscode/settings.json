@@ -25,7 +25,9 @@
   ],
   // lint設定
   "go.lintTool": "golangci-lint",
-  "go.lintFlags": ["--config=server/.golangci.yaml"],
+  "go.lintFlags": [
+    "--config=${workspaceFolder}/server/.golangci.yaml",
+  ],
   "go.lintOnSave": "file",
   "go.formatTool": "goimports",
   "[go]": {
