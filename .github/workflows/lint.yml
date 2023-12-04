@@ -26,6 +26,7 @@ jobs:
           # Github Status へのレポートレベルの指定
           level: warning
           # fail_on_error: true
+          cache: false
           golangci_lint_flags: "--config=.golangci.yaml"
           workdir: server/
   # lint
