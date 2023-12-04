@@ -16,9 +16,11 @@ import (
 
 func main() {
 	db, err := db.NewDB()
+
 	if err != nil {
 		panic(err)
 	}
+
 	defer db.Close()
 
 	slog.Info("start server")
