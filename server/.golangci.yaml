@@ -42,5 +42,4 @@ linters-settings:
           - github.com/go-sql-driver/mysql
 
 issues:
-  # CIで実行するときはtrueにする。
   new: false
