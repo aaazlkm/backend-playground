@@ -24,5 +24,6 @@ jobs:
           reporter: github-pr-review
           # Github Status へのレポートレベルの指定
           level: warning
+          fail_on_error: true
           golangci_lint_flags: "--config=.golangci.yaml"
           workdir: server/
