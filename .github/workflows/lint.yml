@@ -7,46 +7,18 @@ permissions:
   pull-requests: write
 
 jobs:
-  # lint
-  # golangci-lint:
-    # GITHUB_TOKEN への権限設定
-    # permissions:
-    #   checks: write
-    #   contents: read
-    #   pull-requests: write
-    # runs-on: ubuntu-latest
-    # steps:
-    #   - uses: actions/checkout@v4
-    #     with:
-    #       fetch-depth: 0
-    #   - uses: reviewdog/action-golangci-lint@v2
-    #     with:
-    #       # github_token: ${{ secrets.github_token }}
-    #       go-version: '1.21'
-    #       # reviewdog の動作モードの指定
-    #       reporter: github-pr-review
-    #       # Github Status へのレポートレベルの指定
-    #       level: warning
-    #       fail_on_error: true
-    #       cache: false
-    #       golangci_lint_flags: "--config=.golangci.yaml"
-    #       workdir: server/
-  # lint
   golangci-lint:
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'test'
-      - run: echo '::error file=server/main.go,line=12::error message (lint tool name)'
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: reviewdog/action-golangci-lint@v2
         with:
           go-version: '1.21'
+          reporter: github-pr-review
+          level: warning
+          fail_on_error: true
           cache: false
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: latest
-          working-directory: server/
-          skip-cache: true
-          skip-pkg-cache: true
-          skip-build-cache: true
+          golangci_lint_flags: "--config=.golangci.yaml"
+          workdir: server/
