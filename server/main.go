@@ -283,7 +283,6 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 /* -------------------------------------------------------------------------- */
 /*                               error response                               */
 /* -------------------------------------------------------------------------- */
-
 // 共通のレスポンスを定義するためにグローバル変数を使用
 //
 //nolint:gochecknoglobals
@@ -303,7 +302,7 @@ var (
 )
 
 func (h *handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != "GET" {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
