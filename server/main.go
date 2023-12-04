@@ -18,7 +18,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	defer db.Close()
 
 	slog.Info("start server")
@@ -269,9 +268,8 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 /* -------------------------------------------------------------------------- */
 /*                               error response                               */
 /* -------------------------------------------------------------------------- */
+
 // 共通のレスポンスを定義するためにグローバル変数を使用
-//
-//nolint:gochecknoglobals
 var (
 	methodNotAllowedResponse = createResponseInJSON(
 		apiResponse{
