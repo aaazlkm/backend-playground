@@ -269,7 +269,7 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 /*                               error response                               */
 /* -------------------------------------------------------------------------- */
 
-// 共通のレスポンスを定義するためにグローバル変数を使用
+// 共通のレスポンスを定義するためにグローバル変数を使用.
 var (
 	methodNotAllowedResponse = createResponseInJSON(
 		apiResponse{
