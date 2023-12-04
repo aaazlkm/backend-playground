@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"server/db"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
@@ -220,8 +221,6 @@ func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
-	slog.Info("handler is %v", h)
-
 	if r.Method != http.MethodGet {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
@@ -246,7 +245,6 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("id is %v", id)
 	album, err := h.db.Read(id)
 	if err != nil {
 		w.Write(
