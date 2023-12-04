@@ -7,12 +7,12 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"server/db"
 	"strconv"
 	"time"
 
-	"server/db"
-
 	_ "github.com/go-sql-driver/mysql"
+	"server/db"
 )
 
 func main() {
