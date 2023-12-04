@@ -27,6 +27,8 @@ linters:
     - varnamelen # 変数名の長さをチェックするルール。短くするのが慣習なので無効。
     - exhaustruct # structの全てのフィールドが初期化されているかチェックするルール。初期化しないこともあるので無効。
     - gomnd # マジックナンバーを定数にするルール。定数にすると可読性が下がることもあるので無効s。
+    - importas # importのエイリアスをつけるルール。goimportsと競合するので無効。
+    - gci # importのformatとlinter。goimportsと競合するので無効。
 
 # 下記に設定項目記載
 # https://golangci-lint.run/usage/linters/
