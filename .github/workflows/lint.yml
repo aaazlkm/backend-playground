@@ -1,0 +1,51 @@
+name: go format & lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: set up go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 'stable'
+      - name: Install golangci
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - name: Format code
+        run: make fmt
+      - name: Auto commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Apply Code format changes"
+  lint:
+    needs: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: reviewdog
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          go-version: '1.21'
+          reporter: github-pr-review
+          level: warning
+          fail_on_error: true
+          cache: true
+          golangci_lint_flags: "--config=.golangci.yaml"
+          workdir: ./server

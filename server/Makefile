@@ -6,7 +6,7 @@
 fmt:
 	go fmt ./...
 	go mod tidy
-	golangci-lint run --fix
+	golangci-lint run --fix --config=.golangci.yaml --issues-exit-code=0
 .PHONY: fmt
 
 # リントタスク
@@ -16,7 +16,7 @@ lint: fmt
 
 # テストタスク
 test:
-	go test -race -timeout 30m $(option) ./...
+	go test -shuffle on -race -timeout 30m ./...
 .PHONY: test
 
 # テストカバレッジを取得

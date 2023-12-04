@@ -1,4 +1,3 @@
-// main package
 package main
 
 import (
@@ -32,20 +31,13 @@ func main() {
 	mux.HandleFunc("/getAll", h.GetAll)
 
 	sev := &http.Server{
-		Addr:                         ":8080",
-		Handler:                      mux,
-		ReadTimeout:                  30 * time.Second,  //nolint:gomnd
-		ReadHeaderTimeout:            30 * time.Second,  //nolint:gomnd
-		WriteTimeout:                 30 * time.Second,  //nolint:gomnd
-		IdleTimeout:                  120 * time.Second, //nolint:gomnd
-		MaxHeaderBytes:               1 << 20,           //nolint:gomnd
-		TLSConfig:                    nil,
-		TLSNextProto:                 nil,
-		ConnState:                    nil,
-		ErrorLog:                     nil,
-		BaseContext:                  nil,
-		ConnContext:                  nil,
-		DisableGeneralOptionsHandler: false,
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	slog.Info("listenAndServe is started")
@@ -222,8 +214,6 @@ func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
-	slog.Info("handler is %v", h)
-
 	if r.Method != http.MethodGet {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
@@ -248,7 +238,6 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("id is %v", id)
 	album, err := h.db.Read(id)
 	if err != nil {
 		w.Write(
@@ -280,9 +269,7 @@ func (h *handler) Get(w http.ResponseWriter, r *http.Request) {
 /*                               error response                               */
 /* -------------------------------------------------------------------------- */
 
-// 共通のレスポンスを定義するためにグローバル変数を使用
-//
-//nolint:gochecknoglobals
+// 共通のレスポンスを定義するためにグローバル変数を使用.
 var (
 	methodNotAllowedResponse = createResponseInJSON(
 		apiResponse{
