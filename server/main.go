@@ -69,8 +69,7 @@ func newHandler(
 }
 
 func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method !=
-		"POST" {
+	if r.Method != http.MethodPost {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
@@ -127,8 +126,7 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method !=
-		"POST" {
+	if r.Method != http.MethodPost {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
@@ -186,8 +184,7 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method !=
-		"Delete" {
+	if r.Method != http.MethodDelete {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Println(err)
 		}
@@ -292,7 +289,7 @@ var (
 )
 
 func (h *handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
