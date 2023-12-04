@@ -133,7 +133,8 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method !=
+		"POST" {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
@@ -144,6 +145,7 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 	alb := &db.Album{}
 	if err := json.NewDecoder(r.Body).Decode(alb); err != nil {
 		_, err := w.Write(
+
 			createResponseInJSON(
 				apiResponse{
 					Code:    http.StatusBadRequest,
