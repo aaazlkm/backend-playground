@@ -76,7 +76,8 @@ func newHandler(
 }
 
 func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method !=
+		"POST" {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Print(err)
 		}
