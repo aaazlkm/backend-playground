@@ -11,6 +11,7 @@ jobs:
   golangci-lint:
     runs-on: ubuntu-latest
     steps:
+      - run: echo 'test'
       - run: echo '::error file=server/main.go,line=12::error message (lint tool name)'
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
