@@ -137,7 +137,6 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 	alb := &db.Album{}
 	if err := json.NewDecoder(r.Body).Decode(alb); err != nil {
 		_, err := w.Write(
-
 			createResponseInJSON(
 				apiResponse{
 					Code:    http.StatusBadRequest,
