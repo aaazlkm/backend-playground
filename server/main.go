@@ -32,20 +32,13 @@ func main() {
 	mux.HandleFunc("/getAll", h.GetAll)
 
 	sev := &http.Server{
-		Addr:                         ":8080",
-		Handler:                      mux,
-		ReadTimeout:                  30 * time.Second,  //nolint:gomnd
-		ReadHeaderTimeout:            30 * time.Second,  //nolint:gomnd
-		WriteTimeout:                 30 * time.Second,  //nolint:gomnd
-		IdleTimeout:                  120 * time.Second, //nolint:gomnd
-		MaxHeaderBytes:               1 << 20,           //nolint:gomnd
-		TLSConfig:                    nil,
-		TLSNextProto:                 nil,
-		ConnState:                    nil,
-		ErrorLog:                     nil,
-		BaseContext:                  nil,
-		ConnContext:                  nil,
-		DisableGeneralOptionsHandler: false,
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	slog.Info("listenAndServe is started")
