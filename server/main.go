@@ -193,7 +193,8 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
+	if r.Method !=
+		"Delete" {
 		if _, err := w.Write(methodNotAllowedResponse); err != nil {
 			log.Println(err)
 		}
