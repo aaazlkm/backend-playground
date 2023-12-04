@@ -7,16 +7,15 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"server/db"
 	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"server/db"
 )
 
 func main() {
 	db, err := db.NewDB()
-
 	if err != nil {
 		panic(err)
 	}
